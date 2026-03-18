@@ -127,24 +127,24 @@ namespace LibraryWebServer.Controllers
             // TODO: Implement
             using (Team56LibraryContext db = new Team56LibraryContext())
             {
-                var query = from p in db.Patrons
-                               join c in db.CheckedOut
-                               on p.CardNum equals card into pc
-                               from j1 in pc.DefaultIfEmpty()
-                               join i in db.Inventory
-                               on j1.Serial equals i.Serial into pci
-                               from j2 in pci.DefaultIfEmpty()
-                               join t in db.Titles
-                               on j2.Isbn equals t.Isbn into pcit
-                               from j3 in pcit.DefaultIfEmpty()
-                               select new
-                               {
-                                   isbn = j2.Isbn,
-                                   title = j3.Title,
-                                   author = j3.Author,
-                                   serial = j1 == null ? null : (uint?)j1.Serial,
-                                   name = p.Name == null ? "" : p.Name
-                               };
+                var query = from p in db.Patrons where p.CardNum == card
+                            join c in db.CheckedOut
+                            on p.CardNum equals c.CardNum into pc
+                            from j1 in pc.DefaultIfEmpty()
+                            join i in db.Inventory
+                            on j1.Serial equals i.Serial into pci
+                            from j2 in pci.DefaultIfEmpty()
+                            join t in db.Titles
+                            on j2.Isbn equals t.Isbn into pcit
+                            from j3 in pcit.DefaultIfEmpty()
+                            select new
+                            {
+                                isbn = j2.Isbn,
+                                title = j3.Title,
+                                author = j3.Author,
+                                serial = j1 == null ? null : (uint?)j1.Serial,
+                                name = p.Name == null ? "" : p.Name
+                            };
                 return Json(query.ToArray());
             }
             return Json( null );
