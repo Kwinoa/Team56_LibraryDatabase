@@ -1,7 +1,8 @@
-﻿using LibraryWebServer.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
+using LibraryWebServer.Models;
+using Microsoft.AspNetCore.Mvc;
 
 [assembly: InternalsVisibleTo( "TestProject1" )]
 namespace LibraryWebServer.Controllers
@@ -31,8 +32,19 @@ namespace LibraryWebServer.Controllers
         [HttpPost]
         public IActionResult CheckLogin( string name, int cardnum )
         {
-            // TODO: Fill in. Determine if login is successful or not.
             bool loginSuccessful = false;
+
+            using (Team56LibraryContext db = new Team56LibraryContext())
+            {
+                var query = from p in db.Patrons
+                            where p.Name == name && p.CardNum == cardnum
+                            select p;
+
+                if (query.Any())
+                {
+                    loginSuccessful = true;
+                }
+            }
 
             if ( !loginSuccessful )
             {
@@ -74,7 +86,28 @@ namespace LibraryWebServer.Controllers
         {
 
             // TODO: Implement
-            // help
+            using (Team56LibraryContext db = new Team56LibraryContext())
+            {
+                var query = from t in db.Titles
+                            join i in db.Inventory
+                            on t.Isbn equals i.Isbn into ti
+                            from j1 in ti.DefaultIfEmpty()
+                            join c in db.CheckedOut
+                            on j1.Serial equals c.Serial into tic
+                            from j2 in tic.DefaultIfEmpty()
+                            join p in db.Patrons
+                            on j2.CardNum equals p.CardNum into ticp
+                            from j3 in ticp.DefaultIfEmpty()
+                            select new
+                            {
+                                isbn = t.Isbn,
+                                title = t.Title,
+                                author = t.Author,
+                                serial = j1 == null ? null : (uint?) j1.Serial,
+                                name = j3.Name == null ? "" : j3.Name
+                            };
+                return Json(query.ToArray());
+            }
 
             return Json( null );
 
@@ -92,6 +125,28 @@ namespace LibraryWebServer.Controllers
         public ActionResult ListMyBooks()
         {
             // TODO: Implement
+            using (Team56LibraryContext db = new Team56LibraryContext())
+            {
+                var query = from p in db.Patrons
+                               join c in db.CheckedOut
+                               on p.CardNum equals card into pc
+                               from j1 in pc.DefaultIfEmpty()
+                               join i in db.Inventory
+                               on j1.Serial equals i.Serial into pci
+                               from j2 in pci.DefaultIfEmpty()
+                               join t in db.Titles
+                               on j2.Isbn equals t.Isbn into pcit
+                               from j3 in pcit.DefaultIfEmpty()
+                               select new
+                               {
+                                   isbn = j2.Isbn,
+                                   title = j3.Title,
+                                   author = j3.Author,
+                                   serial = j1 == null ? null : (uint?)j1.Serial,
+                                   name = p.Name == null ? "" : p.Name
+                               };
+                return Json(query.ToArray());
+            }
             return Json( null );
         }
 
