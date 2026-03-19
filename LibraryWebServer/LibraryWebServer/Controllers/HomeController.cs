@@ -93,7 +93,7 @@ namespace LibraryWebServer.Controllers
                             on t.Isbn equals i.Isbn into ti
                             from j1 in ti.DefaultIfEmpty()
                             join c in db.CheckedOut
-                            on j1.Serial equals c.Serial into tic
+                            on j1.Serial equals c.Serial into tic   
                             from j2 in tic.DefaultIfEmpty()
                             join p in db.Patrons
                             on j2.CardNum equals p.CardNum into ticp
@@ -109,7 +109,7 @@ namespace LibraryWebServer.Controllers
                 return Json(query.ToArray());
             }
 
-            return Json( null );
+           // return Json( null );
 
         }
 
@@ -127,27 +127,46 @@ namespace LibraryWebServer.Controllers
             // TODO: Implement
             using (Team56LibraryContext db = new Team56LibraryContext())
             {
-                var query = from p in db.Patrons where p.CardNum == card
-                            join c in db.CheckedOut
-                            on p.CardNum equals c.CardNum into pc
-                            from j1 in pc.DefaultIfEmpty()
+                // CheckedOut: Cardnum, Serial
+                // Inventory: Serial, ISBN
+                // Titles: ISBN, Title, Author
+                var query = from c in db.CheckedOut
                             join i in db.Inventory
-                            on j1.Serial equals i.Serial into pci
-                            from j2 in pci.DefaultIfEmpty()
+                            on c.Serial equals i.Serial into ci
+                            from j1 in ci.DefaultIfEmpty()
                             join t in db.Titles
-                            on j2.Isbn equals t.Isbn into pcit
-                            from j3 in pcit.DefaultIfEmpty()
+                            on j1.Isbn equals t.Isbn into cit
+                            from j2 in cit.DefaultIfEmpty()
+                            where c.CardNum == card
                             select new
                             {
-                                isbn = j2.Isbn,
-                                title = j3.Title,
-                                author = j3.Author,
-                                serial = j1 == null ? null : (uint?)j1.Serial,
-                                name = p.Name == null ? "" : p.Name
+                                title = j2.Title,
+                                author = j2.Author,
+                                serial = j1.Serial
                             };
+
+                            //from p in db.Patrons
+                            //where p.CardNum == card
+                            //join c in db.CheckedOut
+                            //on p.CardNum equals c.CardNum into pc
+                            //from j1 in pc.DefaultIfEmpty()
+                            //join i in db.Inventory
+                            //on j1.Serial equals i.Serial into pci
+                            //from j2 in pci.DefaultIfEmpty()
+                            //join t in db.Titles
+                            //on j2.Isbn equals t.Isbn into pcit
+                            //from j3 in pcit.DefaultIfEmpty()
+                            //select new
+                            //{
+                            //    isbn = j2.Isbn,
+                            //    title = j3.Title,
+                            //    author = j3.Author,
+                            //    serial = j1 == null ? null : (uint?)j1.Serial,
+                            //    name = p.Name == null ? "" : p.Name
+                            //};
                 return Json(query.ToArray());
             }
-            return Json( null );
+            //return Json( null );
         }
 
 
@@ -163,9 +182,18 @@ namespace LibraryWebServer.Controllers
         public ActionResult CheckOutBook( int serial )
         {
             // You may have to cast serial to a (uint)
+            using (Team56LibraryContext db = new Team56LibraryContext())
+            {
+                // CheckedOut : Cardnum, Serial
+                CheckedOut co = new CheckedOut();
+                co.CardNum = card;
+                co.Serial = (uint) serial;
 
+                db.CheckedOut.Add(co);
+                db.SaveChanges();
+            }
 
-            return Json( new { success = true } );
+                return Json( new { success = true } );
         }
 
         /// <summary>
